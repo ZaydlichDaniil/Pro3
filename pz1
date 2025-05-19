@@ -1,0 +1,130 @@
+# -*- coding: utf-8 -*-
+"""
+Модуль для управління обліковими записами з різними рівнями доступу.
+"""
+import hashlib
+from datetime import datetime
+
+
+class User:
+    """
+    Базовий клас користувача.
+    Атрибути:
+        username: ім'я користувача
+        password_hash: хеш пароля
+        is_active: чи активний обліковий запис
+    Методи:
+        verify_password(password): перевіряє пароль
+    """
+    def init(self, username: str, password: str, is_active: bool = True):
+        self.username = username
+        self.password_hash = self._hash_password(password)
+        self.is_active = is_active
+
+    def _hash_password(self, password: str) -> str:
+        return hashlib.md5(password.encode('utf-8')).hexdigest()
+
+    def verify_password(self, password: str) -> bool:
+        return self.password_hash == hashlib.md5(password.encode('utf-8')).hexdigest()
+
+
+class Administrator(User):
+    """
+    Адміністратор системи.
+    Може мати список дозволів (permissions).
+    """
+    def init(self, username: str, password: str, permissions: list = None, is_active: bool = True):
+        super().init(username, password, is_active)
+        self.permissions = permissions or []
+
+    def add_permission(self, permission: str) -> None:
+        if permission not in self.permissions:
+            self.permissions.append(permission)
+
+    def remove_permission(self, permission: str) -> None:
+        if permission in self.permissions:
+            self.permissions.remove(permission)
+
+
+class RegularUser(User):
+    """
+    Звичайний користувач.
+    Має атрибут last_login.
+    """
+    def init(self, username: str, password: str, last_login: datetime = None, is_active: bool = True):
+        super().init(username, password, is_active)
+        self.last_login = last_login
+
+    def update_last_login(self) -> None:
+        self.last_login = datetime.now()
+
+
+class GuestUser(User):
+    """
+    Гість.
+    Обмежений доступ, пароль не потрібен.
+    """
+    def init(self, username: str, is_active: bool = True):
+        super().init(username, '', is_active)
+
+    def verify_password(self, password: str) -> bool:
+        # Гості не потребують пароля, доступ завжди надається
+        return True
+
+
+class AccessControl:
+    """
+    Система контролю доступу.
+    Атрибути:
+        users: словник {username: User}
+    Методи:
+        add_user(user)
+        authenticate_user(username, password)
+    """
+    def init(self):
+        self.users = {}
+
+    def add_user(self, user: User) -> None:
+        self.users[user.username] = user
+
+    def authenticate_user(self, username: str, password: str):
+        user = self.users.get(username)
+        if not user:
+            return None
+        if not user.is_active:
+            return None
+        if user.verify_password(password):
+            # при успішному вході оновлюємо last_login, якщо є
+            if hasattr(user, 'update_last_login'):
+                user.update_last_login()
+            return user
+        return None
+
+
+if name == 'main':
+    # Демонстрація роботи
+    ac = AccessControl()
+
+    admin = Administrator('admin', 'adminpass', permissions=['create', 'delete', 'update'])
+        user1 = RegularUser('john', 'johnpass')
+        guest = GuestUser('visitor')
+    
+        ac.add_user(admin)
+        ac.add_user(user1)
+        ac.add_user(guest)
+    
+        # Спроби аутентифікації
+        tests = [
+            ('admin', 'wrong'),
+            ('admin', 'adminpass'),
+            ('john', 'johnpass'),        
+            ('visitor', ''),
+            ('nonexist', 'x')
+        ]
+    
+        for uname, pwd in tests:
+            result = ac.authenticate_user(uname, pwd)
+            if result:
+                print(f"User '{uname}' authenticated as {result.class.name}.")
+            else:
+                print(f"Authentication failed for '{uname}'.")
