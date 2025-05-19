@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import re
+import hashlib
+import os
+import sys
+
+# Завдання 1: Аналізатор лог-файлів
+def analyze_log_file(log_file_path: str) -> dict:
+    """
+    Аналізує файл журналу Apache, рахує кількість входжень HTTP-кодів відповіді.
+    Повертає словник {status_code: count}.
+    Обробляє FileNotFoundError та IOError.
+    """
+    status_counts = {}
+    try:
+        with open(log_file_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                match = re.search(r'"\s(\d{3})\s', line)
+                if match:
+                    code = match.group(1)
+                    status_counts[code] = status_counts.get(code, 0) + 1
+    except FileNotFoundError:
+        print(f"Помилка: файл '{log_file_path}' не знайдено.")
+    except IOError as e:
+        print(f"Помилка читання файлу '{log_file_path}': {e}")
+    return status_counts
+
+# Завдання 2: Генератор хешів файлів
+def generate_file_hashes(*file_paths: str) -> dict:
+    """
+    Для кожного шляху обчислює SHA-256 хеш вмісту файлу.
+    Повертає словник {file_path: hex_hash}.
+    Обробляє FileNotFoundError та IOError.
+    """
+    hashes = {}
+    for path in file_paths:
+        try:
+            hasher = hashlib.sha256()
+            with open(path, 'rb') as f:
+                for chunk in iter(lambda: f.read(8192), b""):
+                    hasher.update(chunk)
+            hashes[path] = hasher.hexdigest()
+        except FileNotFoundError:
+            print(f"Помилка: файл '{path}' не знайдено.")
+        except IOError as e:
+            print(f"Помилка читання файла '{path}': {e}")
+    return hashes
+
+# Завдання 3: Фільтрація IP-адрес з файлу
+def filter_ips(input_file_path: str, output_file_path: str, allowed_ips: list) -> dict:
+    """
+    Читає IP (перший токен кожного рядка) з input_file_path,
+    рахує лише ті, що в allowed_ips,
+    записує у output_file_path у форматі '<IP> - <count>'.
+    Повертає словник {ip: count}.
+    Обробляє FileNotFoundError та IOError.
+    """
+    counts = {}
+    try:
+        with open(input_file_path, 'r', encoding='utf-8') as infile:
+            for line in infile:
+                parts = line.strip().split()
+                if not parts:
+                    continue
+                ip = parts[0]
+                if ip in allowed_ips:
+                    counts[ip] = counts.get(ip, 0) + 1
+    except FileNotFoundError:
+        print(f"Помилка: вхідний файл '{input_file_path}' не знайдено.")
+        return {}
+    except IOError as e:
+        print(f"Помилка читання файлу '{input_file_path}': {e}")
+        return {}
+
+    try:
+        os.makedirs(os.path.dirname(output_file_path) or '.', exist_ok=True)
+        with open(output_file_path, 'w', encoding='utf-8') as outfile:
+            for ip, cnt in counts.items():
+                outfile.write(f"{ip} - {cnt}\n")
+    except IOError as e:
+        print(f"Помилка запису у файл '{output_file_path}': {e}")
+
+    return counts
+
+def main():
+    # Виклик через CLI: 
+    #   python log_tool.py apache_logs.txt file1.log file2.txt
+    log_path = sys.argv[1] if len(sys.argv) > 1 else 'apache_logs.txt'
+    hash_files = sys.argv[2:]  # всі інші аргументи — шляхи для хешування
+    allowed = ['127.0.0.1', '192.168.0.1']  # приклад списку дозволених IP
+    out_path = 'filtered_ips.txt'
+
+    print("Результат аналізу лог-файлу:")
+    print(analyze_log_file(log_path))
+
+    if hash_files:
+        print("\nSHA-256 хеші файлів:")
+        print(generate_file_hashes(*hash_files))
+
+    print("\nРезультат фільтрації IP:")
+    print(filter_ips(log_path, out_path, allowed))
+    print(f"Відфільтровані IP записані в '{out_path}'")
+
+if name == 'main':
+    main()
