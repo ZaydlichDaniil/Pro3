@@ -1,0 +1,32 @@
+import re
+
+def word_count(text: str) -> dict:
+    """
+    Возвращает словарь {слово: количество_вхождений}.
+    """
+    words = re.findall(r'\b\w+\b', text.lower())
+    counts = {}
+    for w in words:
+        counts[w] = counts.get(w, 0) + 1
+    return counts
+
+def frequent_words(counts: dict, threshold: int = 3) -> list:
+    """
+    Возвращает список слов, встречающихся более threshold раз.
+    """
+    return [word for word, cnt in counts.items() if cnt > threshold]
+
+if name == 'main':
+    sample = "Тест тест ТЕСТ один два три тест Один два тест"
+    cnt = word_count(sample)
+    print("Частоты слов:", cnt)
+    print("Слова >3 раз:", frequent_words(cnt))
+
+
+Объяснение:
+
+Мы используем re.findall для извлечения «слов» (последовательностей букв и цифр) в нижнем регистре.
+
+В цикле считаем вхождения каждого слова через dict.get + 1.
+
+Функция frequent_words фильтрует словарь по порогу threshold, возвращая только часто встречающиеся слова.
