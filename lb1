@@ -132,3 +132,4 @@ if __name__ == '__main__':
     add_user(users, 'ivan', 'mypassword', 'Іван Іваненко')
     print('Реєстрація нового користувача завершена.')
     authenticate(users)
+
