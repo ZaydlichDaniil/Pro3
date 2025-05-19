@@ -1,32 +1,116 @@
 import re
+import hashlib
 
-def word_count(text: str) -> dict:
+# Task 1: Text processing
+def word_count(text: str) -> dict[str, int]:
     """
-    Возвращает словарь {слово: количество_вхождений}.
+    Повертає словник {слово: кількість_вхождень}.
     """
     words = re.findall(r'\b\w+\b', text.lower())
-    counts = {}
+    counts: dict[str, int] = {}
     for w in words:
         counts[w] = counts.get(w, 0) + 1
     return counts
 
-def frequent_words(counts: dict, threshold: int = 3) -> list:
+def frequent_words(counts: dict[str, int], threshold: int = 3) -> list[str]:
     """
-    Возвращает список слов, встречающихся более threshold раз.
+    Повертає список слів, що зустрічаються більше threshold разів.
     """
     return [word for word, cnt in counts.items() if cnt > threshold]
 
+
+# Task 2: Inventory management
+inventory: dict[str, int] = {}
+
+def update_inventory(product: str, qty: int) -> dict[str, int]:
+    inventory[product] = inventory.get(product, 0) + qty
+    if inventory[product] <= 0:
+        del inventory[product]
+    return inventory
+
+def low_stock(threshold: int = 5) -> list[str]:
+    return [p for p, q in inventory.items() if q < threshold]
+
+
+# Task 3: Sales statistics
+def total_revenue(sales: list[dict[str, int | float]]) -> tuple[dict[str, float], list[str]]:
+    rev: dict[str, float] = {}
+    for s in sales:
+        prod = s["продукт"]
+        rev[prod] = rev.get(prod, 0.0) + s["кількість"] * s["ціна"]
+    high = [p for p, r in rev.items() if r > 1000]
+    return rev, high
+
+
+# Task 4: Task management system
+tasks: dict[str, str] = {}
+
+def add_task(name: str, status: str) -> None:
+    tasks[name] = status
+
+def remove_task(name: str) -> None:
+    tasks.pop(name, None)
+
+def update_task(name: str, status: str) -> None:
+    if name in tasks:
+        tasks[name] = status
+
+def pending_tasks() -> list[str]:
+    return [n for n, s in tasks.items() if s == "очікує"]
+
+
+# Task 5: User authentication
+users: dict[str, dict[str, str]] = {}
+
+def hash_password(password: str) -> str:
+    return hashlib.md5(password.encode('utf-8')).hexdigest()
+
+def add_user(login: str, password: str, full_name: str = "Зайдліч Данііил Максимович") -> None:
+    users[login] = {
+        "password_hash": hash_password(password),
+        "full_name": full_name
+    }
+
+def authenticate(login: str) -> bool:
+    pwd = input("Пароль: ")
+    return (
+        login in users
+        and users[login]["password_hash"] == hash_password(pwd)
+    )
+
+
 if name == 'main':
-    sample = "Тест тест ТЕСТ один два три тест Один два тест"
-    cnt = word_count(sample)
-    print("Частоты слов:", cnt)
-    print("Слова >3 раз:", frequent_words(cnt))
+    # Task 1 example
+    sample_text = "Тест тест ТЕСТ один два три тест Один два тест"
+    counts = word_count(sample_text)
+    print("Частота слів:", counts)
+    print("Слова >3 разів:", frequent_words(counts))
 
+    # Task 2 example
+    update_inventory("apple", 10)
+    update_inventory("banana", 3)
+    update_inventory("apple", -5)
+    print("Інвентар:", inventory)
+    print("Мало на складі (<5):", low_stock())
 
-Объяснение:
+    # Task 3 example
+    sales_data = [
+        {"продукт": "apple",  "кількість": 100, "ціна": 5},
+        {"продукт": "banana", "кількість": 200, "ціна": 2},
+        {"продукт": "apple",  "кількість":  50, "ціна": 5},
+    ]
+    revenue, top_sellers = total_revenue(sales_data)
+    print("Дохід по продуктах:", revenue)
+    print("Продукти з доходом >1000:", top_sellers)
 
-Мы используем re.findall для извлечения «слов» (последовательностей букв и цифр) в нижнем регистре.
+    # Task 4 example
+    add_task("Завдання 1", "очікує")
+    add_task("Завдання 2", "в процесі")
+    update_task("Завдання 2", "виконано")
+    remove_task("Завдання 1")
+    print("Задачі:", tasks)
+    print("Очікують:", pending_tasks())
 
-В цикле считаем вхождения каждого слова через dict.get + 1.
-
-Функция frequent_words фильтрует словарь по порогу threshold, возвращая только часто встречающиеся слова.
+    # Task 5 example
+    add_user("user1", "password123")
+    print("Аутентифікація успішна?", authenticate("user1"))
