@@ -1,116 +1,134 @@
 import re
 import hashlib
 
-# Task 1: Text processing
-def word_count(text: str) -> dict[str, int]:
+# 1. Робота з текстом
+
+def word_count(text: str) -> dict:
     """
-    Повертає словник {слово: кількість_вхождень}.
+    Повертає словник {слово: кількість_входжень}.
     """
-    words = re.findall(r'\b\w+\b', text.lower())
-    counts: dict[str, int] = {}
+    words = re.findall(r"\b\w+\b", text.lower())
+    counts = {}
     for w in words:
         counts[w] = counts.get(w, 0) + 1
     return counts
 
-def frequent_words(counts: dict[str, int], threshold: int = 3) -> list[str]:
+# 2. Інвентаризація продуктів
+
+def update_inventory(inventory: dict, product: str, quantity: int) -> None:
     """
-    Повертає список слів, що зустрічаються більше threshold разів.
+    Оновлює словник inventory: додає або зменшує кількість product на quantity.
+    Якщо кількість <= 0 — видаляє товар.
     """
-    return [word for word, cnt in counts.items() if cnt > threshold]
+    current = inventory.get(product, 0)
+    new_qty = current + quantity
+    if new_qty > 0:
+        inventory[product] = new_qty
+    else:
+        inventory.pop(product, None)
 
+# 3. Статистика продажів
 
-# Task 2: Inventory management
-inventory: dict[str, int] = {}
+def calculate_revenue(sales: list) -> dict:
+    """
+    Обчислює загальний дохід для кожного продукту.
+    sales — список словників з ключами 'product', 'quantity', 'price'.
+    Повертає {product: total_revenue}.
+    """
+    revenue = {}
+    for sale in sales:
+        prod = sale['product']
+        qty = sale['quantity']
+        price = sale['price']
+        revenue[prod] = revenue.get(prod, 0) + qty * price
+    return revenue
 
-def update_inventory(product: str, qty: int) -> dict[str, int]:
-    inventory[product] = inventory.get(product, 0) + qty
-    if inventory[product] <= 0:
-        del inventory[product]
-    return inventory
+# 4. Система управління задачами
 
-def low_stock(threshold: int = 5) -> list[str]:
-    return [p for p, q in inventory.items() if q < threshold]
-
-
-# Task 3: Sales statistics
-def total_revenue(sales: list[dict[str, int | float]]) -> tuple[dict[str, float], list[str]]:
-    rev: dict[str, float] = {}
-    for s in sales:
-        prod = s["продукт"]
-        rev[prod] = rev.get(prod, 0.0) + s["кількість"] * s["ціна"]
-    high = [p for p, r in rev.items() if r > 1000]
-    return rev, high
-
-
-# Task 4: Task management system
-tasks: dict[str, str] = {}
-
-def add_task(name: str, status: str) -> None:
+def add_task(tasks: dict, name: str, status: str = 'очікує') -> None:
+    """Додає задачу з ім'ям name та статусом status."""
     tasks[name] = status
 
-def remove_task(name: str) -> None:
+
+def remove_task(tasks: dict, name: str) -> None:
+    """Видаляє задачу name, якщо вона існує."""
     tasks.pop(name, None)
 
-def update_task(name: str, status: str) -> None:
+
+def update_task(tasks: dict, name: str, new_status: str) -> None:
+    """Оновлює статус задачі name на new_status."""
     if name in tasks:
-        tasks[name] = status
+        tasks[name] = new_status
 
-def pending_tasks() -> list[str]:
-    return [n for n, s in tasks.items() if s == "очікує"]
-
-
-# Task 5: User authentication
-users: dict[str, dict[str, str]] = {}
+# 5. Аутентифікація користувачів
 
 def hash_password(password: str) -> str:
+    """Хешує пароль за допомогою MD5."""
     return hashlib.md5(password.encode('utf-8')).hexdigest()
 
-def add_user(login: str, password: str, full_name: str = "Зайдліч Данііил Максимович") -> None:
-    users[login] = {
-        "password_hash": hash_password(password),
-        "full_name": full_name
-    }
 
-def authenticate(login: str) -> bool:
-    pwd = input("Пароль: ")
-    return (
-        login in users
-        and users[login]["password_hash"] == hash_password(pwd)
-    )
+def add_user(users: dict, login: str, password: str, fullname: str) -> None:
+    """Додає користувача з логіном login, хешованим паролем та повним ПІБ."""
+    users[login] = {'password': hash_password(password), 'fullname': fullname}
 
 
-if name == 'main':
-    # Task 1 example
-    sample_text = "Тест тест ТЕСТ один два три тест Один два тест"
+def authenticate(users: dict) -> bool:
+    """Перевіряє введений користувачем пароль через input()."""
+    login = input('Login: ')
+    pwd = input('Password: ')
+    user = users.get(login)
+    if not user:
+        print('Користувача не знайдено.')
+        return False
+    if hash_password(pwd) == user['password']:
+        print(f"Вітаємо, {user['fullname']}!")
+        return True
+    else:
+        print('Невірний пароль.')
+        return False
+
+
+if __name__ == '__main__':
+    # Демонстрація роботи всіх блоків
+
+    # 1. Text processing
+    sample_text = 'тест тест ТЕСТ один два три тест Один два тест'
     counts = word_count(sample_text)
-    print("Частота слів:", counts)
-    print("Слова >3 разів:", frequent_words(counts))
+    print('Словник входжень:', counts)
+    frequent = [w for w, c in counts.items() if c > 3]
+    print('Слова, що зустрічаються більше 3 разів:', frequent)
 
-    # Task 2 example
-    update_inventory("apple", 10)
-    update_inventory("banana", 3)
-    update_inventory("apple", -5)
-    print("Інвентар:", inventory)
-    print("Мало на складі (<5):", low_stock())
+    # 2. Inventory management
+    inventory = {'apple': 10, 'banana': 3, 'orange': 5}
+    update_inventory(inventory, 'banana', 4)   # banana: 3+4=7
+    update_inventory(inventory, 'orange', -5)  # orange: 5-5=0 -> видалено
+    print('Inventory:', inventory)
+    low_stock = [p for p, q in inventory.items() if q < 5]
+    print('Продукти з кількістю менше 5:', low_stock)
 
-    # Task 3 example
-    sales_data = [
-        {"продукт": "apple",  "кількість": 100, "ціна": 5},
-        {"продукт": "banana", "кількість": 200, "ціна": 2},
-        {"продукт": "apple",  "кількість":  50, "ціна": 5},
+    # 3. Sales statistics
+    sales = [
+        {'product': 'apple', 'quantity': 50, 'price': 2.5},
+        {'product': 'banana', 'quantity': 10, 'price': 1.2},
+        {'product': 'apple', 'quantity': 30, 'price': 2.5},
     ]
-    revenue, top_sellers = total_revenue(sales_data)
-    print("Дохід по продуктах:", revenue)
-    print("Продукти з доходом >1000:", top_sellers)
+    revenue = calculate_revenue(sales)
+    print('Дохід по продуктах:', revenue)
+    high_revenue = [p for p, r in revenue.items() if r > 1000]
+    print('Продукти з доходом понад 1000:', high_revenue)
 
-    # Task 4 example
-    add_task("Завдання 1", "очікує")
-    add_task("Завдання 2", "в процесі")
-    update_task("Завдання 2", "виконано")
-    remove_task("Завдання 1")
-    print("Задачі:", tasks)
-    print("Очікують:", pending_tasks())
+    # 4. Task management
+    tasks = {}
+    add_task(tasks, 'Зробити звіт')
+    add_task(tasks, 'Провести аналіз', 'в процесі')
+    update_task(tasks, 'Зробити звіт', 'виконано')
+    remove_task(tasks, 'Провести аналіз')
+    print('Задачі:', tasks)
+    waiting = [n for n, s in tasks.items() if s == 'очікує']
+    print('Задачі в статусі очікує:', waiting)
 
-    # Task 5 example
-    add_user("user1", "password123")
-    print("Аутентифікація успішна?", authenticate("user1"))
+    # 5. User authentication
+    users = {}
+    add_user(users, 'ivan', 'mypassword', 'Іван Іваненко')
+    print('Реєстрація нового користувача завершена.')
+    authenticate(users)
